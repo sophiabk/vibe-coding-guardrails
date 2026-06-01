@@ -1,0 +1,38 @@
+# CODEOWNERS — required reviewers for security-sensitive paths.
+#
+# This file is parsed by GitHub at PR-open time. Lines below override lines
+# above, so the most specific path wins. The team referenced below
+# (`@acme-app/security-reviewers`) must exist as a GitHub team in the
+# `acme-app` organisation and have write access to this repository.
+# If the team does not yet exist, create it before merging this file —
+# otherwise GitHub will silently skip the review requirement.
+#
+# Branch-protection on `main` and `staging` must be configured separately to
+# *require* review from CODEOWNERS for the rules below to be enforced.
+
+# Authentication and authorization
+/auth.config.ts                 @acme-app/security-reviewers
+/src/auth.js                    @acme-app/security-reviewers
+/src/middleware.js              @acme-app/security-reviewers
+/src/lib/auth/                  @acme-app/security-reviewers
+/src/lib/audit/                 @acme-app/security-reviewers
+/src/lib/sentry/                @acme-app/security-reviewers
+
+# Build, deployment, and security headers
+/next.config.js                 @acme-app/security-reviewers
+/vercel.json                    @acme-app/security-reviewers
+/sentry.server.config.ts        @acme-app/security-reviewers
+/sentry.client.config.ts        @acme-app/security-reviewers
+/sentry.edge.config.ts          @acme-app/security-reviewers
+/src/instrumentation-client.ts  @acme-app/security-reviewers
+
+# Schema and migrations (any change touches data integrity guarantees)
+/prisma/schema.prisma           @acme-app/security-reviewers
+/prisma/migrations/             @acme-app/security-reviewers
+
+# Infrastructure
+/terraform/                     @acme-app/security-reviewers
+
+# CI/CD configuration
+/.github/workflows/             @acme-app/security-reviewers
+/.github/CODEOWNERS             @acme-app/security-reviewers

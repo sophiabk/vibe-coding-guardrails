@@ -1,0 +1,28 @@
+{
+  "name": "acme-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest",
+    "test-ci": "vitest --run"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "//": "Dependency versions below are ILLUSTRATIVE — pin your own.",
+  "dependencies": {
+    "@prisma/client": "^5.5.2",
+    "next": "^14.2.35",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "prisma": "^5.5.2",
+    "ts-node": "^10.9.2",
+    "vitest": "^1.0.0"
+  }
+}

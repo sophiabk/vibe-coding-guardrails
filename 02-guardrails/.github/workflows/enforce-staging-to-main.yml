@@ -1,0 +1,25 @@
+name: Enforce staging to main
+
+# Enforces the promotion path: feature -> staging -> main.
+# PRs to main are only allowed when they come from the staging branch.
+
+on:
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          if [ "${{ github.base_ref }}" = "staging" ]; then
+            echo "✅ PRs to staging are allowed from any branch"
+            exit 0
+          elif [ "${{ github.base_ref }}" = "main" ] && [ "${{ github.head_ref }}" = "staging" ]; then
+            echo "✅ PR to main is correctly from staging branch"
+            exit 0
+          else
+            echo "❌ PRs to main must come from the staging branch, not '${{ github.head_ref }}'"
+            exit 1
+          fi

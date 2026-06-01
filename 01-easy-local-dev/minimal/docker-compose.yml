@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15.4
+    ports:
+      - "5432:5432"
+    environment:
+      # Injected at runtime by the secrets manager — never hard-code a real password here.
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    volumes:
+      # Persist data on the host so `make stop` doesn't wipe the database.
+      - acme-app-postgres:/var/lib/postgresql/data
+
+volumes:
+  acme-app-postgres:

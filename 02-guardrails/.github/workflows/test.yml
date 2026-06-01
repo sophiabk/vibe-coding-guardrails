@@ -1,0 +1,33 @@
+# Reusable workflow: run the unit/integration test suite (vitest).
+# Called by deploy.yml and any on-demand CI workflow via `uses:`.
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "yarn"
+      - name: Enable corepack and set Yarn version
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+          yarn --version
+      - name: Run install
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: install
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Test
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: test-ci
+        env:
+          NEXT_TELEMETRY_DISABLED: 1

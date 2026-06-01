@@ -1,0 +1,98 @@
+name: Deploy
+
+# Runs on every branch push.
+#   - lint + test always run (composed from the reusable workflows).
+#   - migrations + build + deploy run ONLY on main/staging, gated by GitHub
+#     Environments so production secrets are scoped to the main ref.
+# All secret values come from GitHub Secrets / Environments — none are in this file.
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  test:
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'Production' || 'Staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: github.ref_name == 'main' || github.ref_name == 'staging'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "yarn"
+
+      - name: Enable corepack for Yarn
+        if: github.ref_name == 'main' || github.ref_name == 'staging'
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+
+      - name: Install dependencies
+        if: github.ref_name == 'main' || github.ref_name == 'staging'
+        run: yarn install --immutable
+
+      - name: Run database migrations
+        if: github.ref_name == 'main' || github.ref_name == 'staging'
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Determine Environment
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "vercel_env=production" >> $GITHUB_OUTPUT
+            echo "deploy_flag=--prod" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "staging" ]; then
+            echo "vercel_env=staging" >> $GITHUB_OUTPUT
+            echo "deploy_flag=--target staging" >> $GITHUB_OUTPUT
+          else
+            echo "vercel_env=preview" >> $GITHUB_OUTPUT
+            echo "deploy_flag=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=${{ steps.env.outputs.vercel_env }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build with Vercel
+        run: vercel build ${{ steps.env.outputs.deploy_flag }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ steps.env.outputs.deploy_flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Output Deployment URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
+
+      - name: Deploy Background Jobs (Trigger.dev)
+        if: github.ref_name == 'main' || github.ref_name == 'staging'
+        # npx without a version uses the locally installed CLI from node_modules
+        run: npx trigger.dev deploy --env ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}

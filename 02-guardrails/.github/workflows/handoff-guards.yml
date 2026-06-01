@@ -1,0 +1,35 @@
+name: Handoff guards
+
+# Freezes the two changes a non-technical owner can't safely make alone:
+#   1. database schema edits (prisma/schema.prisma)
+#   2. dependency add/remove/upgrade (package.json)
+# Any PR to staging or main that touches them hard-fails here.
+
+on:
+  pull_request:
+    branches: [staging, main]
+
+jobs:
+  block-frozen-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Block prisma/schema.prisma changes
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha }}...HEAD | grep -qx 'prisma/schema.prisma'; then
+            echo "::error::prisma/schema.prisma was modified. The schema is frozen — schema changes require a paid session with the developer."
+            exit 1
+          fi
+
+      - name: Block package.json dependency changes
+        run: |
+          base=$(git show ${{ github.event.pull_request.base.sha }}:package.json | jq -S '{dependencies, devDependencies}')
+          head=$(git show HEAD:package.json | jq -S '{dependencies, devDependencies}')
+          if [ "$base" != "$head" ]; then
+            echo "::error::package.json dependencies or devDependencies were modified. Adding/upgrading deps requires a paid session with the developer."
+            diff <(echo "$base") <(echo "$head") || true
+            exit 1
+          fi

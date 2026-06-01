@@ -1,0 +1,39 @@
+# Reusable workflow: ESLint (zero warnings) + Prettier check on src/.
+# Called by deploy.yml and any on-demand CI workflow via `uses:`.
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "yarn"
+      - name: Enable corepack and set Yarn version
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+          yarn --version
+      - name: Run install
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: install
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Run Lint
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: lint --max-warnings 0
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Run Prettier
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: prettier src/ --check
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
