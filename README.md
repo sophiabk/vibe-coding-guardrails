@@ -18,7 +18,8 @@ handoff-template/
 ├── 01-easy-local-dev/      # "make dev" and why it's non-technical-friendly
 │   ├── OVERVIEW.md         # ← read this first
 │   ├── minimal/            # generic core: Next.js + Postgres + a secrets manager
-│   └── advanced/           # the full version: + background jobs, webhooks, Python workers
+│   ├── advanced/           # the full version: + background jobs, webhooks, Python workers
+│   └── variants/           # the same Makefile for Doppler / 1Password / plain .env
 │
 ├── 02-guardrails/          # every guardrail, explained, with the actual files
 │   ├── OVERVIEW.md         # ← read this first
@@ -38,7 +39,7 @@ handoff-template/
 **For the easy-dev setup:**
 
 1. Start from `01-easy-local-dev/minimal/`. Copy the `Makefile`, `docker-compose.yml`, and `.env.example` into your project. You now have `make dev` / `make stop` / `make reset` / `make doctor`.
-2. Pick a secrets manager (Infisical, Doppler, 1Password CLI, …) and wire it into the `SECRETS_RUN` variable at the top of the `Makefile`.
+2. Pick a secrets manager (Infisical, Doppler, 1Password CLI, …) and wire it into the `SECRETS_RUN` variable at the top of the `Makefile`. See `01-easy-local-dev/variants/` for a ready-made Makefile per tool.
 3. As your stack grows, copy the relevant pieces from `01-easy-local-dev/advanced/` — the extra `doctor` checks, the Python `_venv` target, the multi-process `dev` script in `package.json`.
 
 **For the guardrails:**
