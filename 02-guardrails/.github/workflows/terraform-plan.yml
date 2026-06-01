@@ -1,0 +1,119 @@
+name: "Terraform Plan (Legacy AWS)"
+
+# OPTIONAL / LEGACY. Kept as a sample for teams that deploy to AWS via Terraform
+# Cloud + OpenNext instead of Vercel. Auto-deploy is disabled — it only runs on a
+# manual dispatch, preserved for rollback. If you deploy to Vercel, you don't need
+# this file; deploy.yml covers it. All values come from GitHub Secrets / Environments.
+
+on:
+  # Auto-deploy disabled — use deploy.yml instead. Manual trigger preserved for rollback.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select the environment to deploy to"
+        required: true
+        default: "staging"
+        options:
+          - staging
+          - production
+
+env:
+  CONFIG_DIRECTORY: "./"
+  TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+  TF_CLOUD_ORGANIZATION: "acme-app"
+  TF_WORKSPACE: ${{ inputs.environment == 'production' && 'prod' || 'staging' }}
+  ENVIRONMENT: ${{ inputs.environment || 'staging' }}
+
+  # Terraform input variables. Mirror your app's runtime env here, one TF_VAR_* per
+  # secret. The quoting ('"..."') wraps each value so Terraform receives a JSON string.
+  TF_VAR_APP_URL: '"${{ secrets.APP_URL }}"'
+  TF_VAR_AUTH_SECRET: '"${{ secrets.AUTH_SECRET }}"'
+  TF_VAR_AUTH_URL: '"${{ secrets.AUTH_URL }}"'
+  TF_VAR_DATABASE_URL: '"${{ secrets.DATABASE_URL }}"'
+  TF_VAR_ENVIRONMENT: '"${{ inputs.environment }}"'
+  TF_VAR_GOOGLE_CLIENT_ID: '"${{ secrets.GOOGLE_CLIENT_ID }}"'
+  TF_VAR_GOOGLE_CLIENT_SECRET: '"${{ secrets.GOOGLE_CLIENT_SECRET }}"'
+  TF_VAR_OPENAI_API_KEY: '"${{ secrets.OPENAI_API_KEY }}"'
+  TF_VAR_SENDGRID_KEY: '"${{ secrets.SENDGRID_KEY }}"'
+  TF_VAR_MAILCHIMP_API_KEY: '"${{ secrets.MAILCHIMP_API_KEY }}"'
+  TF_VAR_UPLOAD_BUCKET_NAME: '"${{ secrets.UPLOAD_BUCKET_NAME }}"'
+  TF_VAR_PG_PASSWORD: '"${{ secrets.TF_VAR_PG_PASSWORD }}"'
+  TF_VAR_SENTRY_DSN: '"${{ secrets.SENTRY_DSN }}"'
+  TF_VAR_SENTRY_AUTH_TOKEN: '"${{ secrets.SENTRY_AUTH_TOKEN }}"'
+  TF_VAR_STRIPE_SECRET_KEY: '"${{ secrets.STRIPE_SECRET_KEY }}"'
+  TF_VAR_STRIPE_SECRET_WEBHOOK_KEY: '"${{ secrets.STRIPE_SECRET_WEBHOOK_KEY }}"'
+  TF_VAR_NEXT_PUBLIC_STRIPE_PUBLIC_KEY: '"${{ secrets.NEXT_PUBLIC_STRIPE_PUBLIC_KEY }}"'
+  TF_VAR_NEXT_PUBLIC_ENABLE_PAYWALL: '"${{ secrets.NEXT_PUBLIC_ENABLE_PAYWALL }}"'
+  TF_VAR_NEXT_PUBLIC_ENABLED_STATES: '"${{ secrets.NEXT_PUBLIC_ENABLED_STATES }}"'
+
+jobs:
+  terraform:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: "npm"
+      - name: Enable corepack and set Yarn version
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+          yarn --version
+
+      - name: Run install
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: install
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Prisma Generate
+        uses: borales/actions-yarn/@v4
+        with:
+          cmd: prisma generate
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run Build (OpenNext)
+        run: NODE_OPTIONS="--max-old-space-size=4096" npx open-next@2.3.7 build --dangerously-disable-incremental-cache --dangerously-disable-dynamodb-cache --streaming
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          IS_BUILDING_APP: true
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEXT_PUBLIC_STRIPE_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLIC_KEY }}
+          NEXT_PUBLIC_STRIPE_ENVIRONMENT: ${{ inputs.environment == 'production' && 'production' || 'test' }}
+          NEXT_PUBLIC_ENABLE_PAYWALL: "true"
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_SECRET_WEBHOOK_KEY: ${{ secrets.STRIPE_SECRET_WEBHOOK_KEY }}
+
+      - name: Deploy Background Jobs (Trigger.dev)
+        run: npx trigger.dev deploy --env ${{ inputs.environment || 'staging' }}
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
+
+      - name: Upload Configuration
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.3.1
+        id: upload
+        with:
+          directory: ${{ env.CONFIG_DIRECTORY }}
+          workspace: ${{ env.TF_WORKSPACE }}
+          speculative: false
+
+      - name: Create Plan Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.3.1
+        id: plan-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.upload.outputs.configuration_version_id }}

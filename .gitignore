@@ -1,0 +1,9 @@
+# This kit ships .env.example files (placeholders) but never a real .env.
+.env
+.env.local
+.env.*.local
+
+# Local tooling artifacts
+node_modules/
+.venv/
+.DS_Store

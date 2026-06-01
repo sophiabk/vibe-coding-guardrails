@@ -72,9 +72,10 @@ Each design choice removes a specific point of friction:
 - **Three processes look like one.** `concurrently` runs the app, the worker, and the webhook listener in a single terminal with labeled, color-coded output — no juggling tabs.
 - **`make reset` is a safe panic button.** When the local database gets into a weird state, one command rebuilds it from scratch. There's nothing precious to lose locally.
 
-## Two layers in this folder
+## Layers in this folder
 
 - [`minimal/`](minimal/) — the **generic core**: Next.js + Postgres + a secrets-manager wrapper. Start here. It's the smallest thing that gives you `make dev` / `stop` / `reset` / `doctor`.
 - [`advanced/`](advanced/) — the **full version**: adds the background-job worker, the Stripe webhook listener, the Python virtualenv, and the complete `doctor` check suite. Copy pieces from here as your stack grows.
+- [`variants/`](variants/) — the **same minimal Makefile, one per secrets manager** (Infisical, Doppler, 1Password, or a plain `.env` file). Shows that switching tools is a one-line change.
 
 The secrets manager is shown as **Infisical** in `advanced/` because that's what the source project used, but the pattern is tool-agnostic — `minimal/` uses a generic `SECRETS_RUN` variable you can point at Doppler, 1Password CLI, `direnv`, or anything else that wraps a command with injected env vars.

@@ -1,0 +1,104 @@
+# .github/workflows/pr-tests-manual.yml
+name: PR Tests (manual)
+
+# On-demand full CI suite. Two ways to trigger:
+#   1. Comment "/run-ci" on a PR.
+#   2. Manually via the Actions tab (workflow_dispatch), passing a PR number.
+# Useful for re-running the full lint+test+build suite without pushing a new commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number"
+        required: true
+        type: number
+  issue_comment:
+    types: [created] # enables /run-ci
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  full-ci:
+    name: full-ci
+    # runs when someone comments "/run-ci" on a PR OR when manually triggered
+    if: |
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/run-ci')) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add reaction
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+      - name: Determine PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ inputs.pr }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.number }}/merge
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "npm"
+      - name: Enable corepack and set Yarn version
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+          yarn --version
+
+      - name: Run install
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Lint
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: lint
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Prettier
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: prettier src/ --check
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Tests
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: test-ci
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Build
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1

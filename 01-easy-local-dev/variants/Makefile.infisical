@@ -1,0 +1,58 @@
+# acme-app — local development (Infisical secrets).
+# Secrets are injected at runtime by `infisical run`, so there is no .env file.
+#
+#   make dev / make stop / make reset / make doctor
+
+.PHONY: dev stop reset doctor _check-docker _check-node _db-up _migrate _seed
+
+ENV ?= dev
+SECRETS_RUN := infisical run --env=$(ENV) --
+
+# ---------- main targets ----------
+
+dev: doctor _db-up _migrate _seed
+	@echo "→ Starting the app at http://localhost:3000 (Ctrl+C to stop)"
+	@$(SECRETS_RUN) yarn dev
+
+stop:
+	@PG_PASSWORD=dummy docker compose down
+
+reset: doctor
+	@$(MAKE) _db-up
+	@$(SECRETS_RUN) npx prisma migrate reset --force
+	@echo "✓ Local database reset"
+
+# ---------- doctor ----------
+
+doctor: _check-docker _check-node
+	@if ! command -v infisical > /dev/null 2>&1; then \
+		echo "✗ Infisical CLI not installed. Fix: brew install infisical/get-cli/infisical"; exit 1; fi
+	@if ! infisical user > /dev/null 2>&1; then \
+		echo "✗ Infisical not authenticated. Fix: infisical login"; exit 1; fi
+	@echo "✓ All prerequisites OK"
+
+_check-docker:
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "✗ Docker not running. Fix: open Docker Desktop."; exit 1; fi
+
+_check-node:
+	@node_major=$$(node -v 2>/dev/null | sed 's/v\([0-9]*\).*/\1/'); \
+	if [ -z "$$node_major" ] || [ "$$node_major" -lt 20 ]; then \
+		echo "✗ Need Node 20+. Fix: brew install node@20"; exit 1; fi
+
+# ---------- internals ----------
+
+_db-up:
+	@$(SECRETS_RUN) docker compose up -d
+	@echo "  Waiting for Postgres on localhost:5432..."
+	@for i in $$(seq 1 30); do \
+		if nc -z localhost 5432 > /dev/null 2>&1; then echo "✓ Postgres ready"; exit 0; fi; \
+		sleep 1; \
+	done; \
+	echo "✗ Postgres did not become ready in 30s. Check 'docker compose logs db'."; exit 1
+
+_migrate:
+	@$(SECRETS_RUN) npx prisma migrate deploy
+
+_seed:
+	@$(SECRETS_RUN) npx prisma db seed

@@ -72,6 +72,14 @@ This guarantees `feature → staging → main` and makes "oops I PR'd straight t
 - `deploy.yml` runs on every branch push: it always runs lint + test, and **only on `main`/`staging`** does it run database migrations, build, and deploy (to Vercel) — gated by GitHub **Environments** (`Production` vs `Staging`) so production secrets are only available on the `main` ref.
 - Migrations run automatically on deploy (`npx prisma migrate deploy`) — the operator never runs a migration against a remote database by hand.
 
+### More sample workflows in this folder
+
+Beyond the core six, the `.github/workflows/` folder includes three optional samples:
+
+- **`playwright.yml`** — end-to-end browser tests, run only on PRs to `main` (the last gate before prod). Spins up a throwaway Postgres as a GitHub *service container*, so no external database is needed. The CI-only login password comes from a GitHub Secret (`CI_TEST_PASSWORD`), never committed.
+- **`pr-tests-manual.yml`** — on-demand full CI. Trigger it by commenting **`/run-ci`** on a PR (it adds a 🚀 reaction) or manually from the Actions tab. Handy for re-running the whole lint+test+build suite without pushing a new commit.
+- **`terraform-plan.yml`** — **legacy/optional.** A sample for teams deploying to AWS via Terraform Cloud + OpenNext instead of Vercel. Disabled for auto-run (manual dispatch only). If you deploy to Vercel you don't need it — `deploy.yml` covers that path. Included as a reference for the "one `TF_VAR_*` per secret" pattern.
+
 ## 6. The human gate — `CODEOWNERS`
 
 Lists security-sensitive paths (auth, schema, migrations, infra, CI config) and assigns a required reviewer team. **Caveat baked into the file:** CODEOWNERS only *requests* review until you turn on branch protection that *requires* CODEOWNERS approval. Without that, GitHub silently skips it.
