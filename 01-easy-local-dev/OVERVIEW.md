@@ -60,6 +60,69 @@ The other entry points:
 | `make reset` | Wipe the local database, re-migrate, re-seed. (Local data is throwaway.) |
 | `make doctor` | Check prerequisites and print fixes for anything missing. |
 
+## First-time setup (fresh Mac, nothing installed)
+
+`make dev` is the daily ritual *once you're set up*. The full path from a brand-new Mac with nothing installed looks like this. Skip any step you've already done.
+
+### 1. Install Homebrew
+
+The macOS package manager. Everything else uses it.
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 2. Install the GitHub CLI and authenticate
+
+Lets you clone the (private) repo over HTTPS without setting up SSH keys.
+
+```bash
+brew install gh
+gh auth login    # interactive browser flow — pick GitHub.com, HTTPS, login with browser
+```
+
+### 3. Install Docker Desktop
+
+The local Postgres database runs in Docker. This is a manual step — it needs sudo and a GUI license click, so it's not something a script should do for you.
+
+```bash
+brew install --cask docker    # OR download from https://www.docker.com/products/docker-desktop/
+open -a Docker                # launch and wait for the whale icon in the menu bar
+```
+
+Docker has to be **running** (whale icon visible) before any `make` target that touches the database.
+
+### 4. Clone the repo
+
+```bash
+gh repo clone your-org/acme-app ~/projects/acme-app
+cd ~/projects/acme-app
+```
+
+### 5. Let `make doctor` tell you what's left
+
+```bash
+make doctor
+```
+
+`doctor` checks every prerequisite (Node 20+, Yarn, the secrets-manager CLI, Python, etc.) and, for each one that's missing, prints the **exact command to fix it** — e.g. `Fix: brew install node@20`. Run those fix commands, then re-run `make doctor` until it's all green. The error *is* the instructions; there's no separate setup script to memorize.
+
+### 6. Authenticate the secrets manager
+
+Secrets are injected at runtime, so you log in once per machine (Infisical in the `advanced/` example — substitute your own):
+
+```bash
+infisical login    # interactive browser flow
+```
+
+### 7. Start everything
+
+```bash
+make dev
+```
+
+From here on, `make dev` is the only command you need.
+
 ## Why this is easy for a non-technical person
 
 Each design choice removes a specific point of friction:
