@@ -4,9 +4,10 @@ When you hand a codebase to a non-technical owner (or let an AI assistant make c
 
 ## Running the app locally
 
-These guardrails sit on top of the same one-command workflow as the rest of the template —
-they don't change how you run the app. Once the prerequisites are installed, everything is
-driven by four `make` commands:
+These guardrails sit on top of the same one-command workflow as the rest of the template.
+This describes how that workflow runs in a real project that adopts the kit (the example
+app is `acme-app`) — it is **not** how to run this template repo, which has no app to
+start. In an adopting project, everything is driven by four `make` commands:
 
 | Command | What it does |
 | --- | --- |
@@ -15,10 +16,10 @@ driven by four `make` commands:
 | `make reset` | Wipe the local DB, re-migrate, re-seed. |
 | `make doctor` | Check prerequisites; print the fix command for anything missing. |
 
-For the full line-by-line install list (Homebrew, Docker, Node 20+, Yarn, the secrets
-manager, Stripe/Trigger CLIs, Python) see
-[`../01-easy-local-dev/OVERVIEW.md`](../01-easy-local-dev/OVERVIEW.md). If `make dev`
-fails, run `make doctor` first.
+Setup is just three manual steps — install Homebrew, download and open Docker, and
+`git clone` the repo — then `make dev` runs `make doctor`, which checks everything else
+and prints the exact command to install anything missing. See
+[`../01-easy-local-dev/OVERVIEW.md`](../01-easy-local-dev/OVERVIEW.md) for the walkthrough.
 
 ## The layers of defense
 

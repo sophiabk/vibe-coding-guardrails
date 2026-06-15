@@ -1,5 +1,10 @@
 # Easy local dev: one command for a non-technical owner
 
+> **This describes how the pattern works — it is not a runnable repo.** The example app is
+> **`acme-app`** and `your-org/acme-app` is a placeholder. The steps below show how the
+> `make dev` workflow behaves in a real project that adopts this template; copy the pieces
+> into your own app. There is nothing in this template to `make dev` against.
+
 ## The problem
 
 A modern web app has a lot of moving parts. To run `acme-app` locally you need, all at once:
@@ -62,28 +67,19 @@ The other entry points:
 
 ## First-time setup (fresh Mac, nothing installed)
 
-`make dev` is the daily ritual *once you're set up*. The full path from a brand-new Mac with nothing installed looks like this. Skip any step you've already done.
+`make dev` is the daily ritual *once you're set up*. From a brand-new Mac there are only three things to install by hand — everything else, `make dev` diagnoses for you. Skip any step you've already done.
 
 ### 1. Install Homebrew
 
-The macOS package manager. Everything else uses it.
+The macOS package manager. Every other tool is installed through it, so this comes first.
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-### 2. Install the GitHub CLI and authenticate
+### 2. Download and open Docker Desktop
 
-Lets you clone the (private) repo over HTTPS without setting up SSH keys.
-
-```bash
-brew install gh
-gh auth login    # interactive browser flow — pick GitHub.com, HTTPS, login with browser
-```
-
-### 3. Install Docker Desktop
-
-The local Postgres database runs in Docker. This is a manual step — it needs sudo and a GUI license click, so it's not something a script should do for you.
+The local Postgres database runs in Docker. This is a manual step — it needs a GUI license click, so it's not something a script should do for you.
 
 ```bash
 brew install --cask docker    # OR download from https://www.docker.com/products/docker-desktop/
@@ -92,74 +88,24 @@ open -a Docker                # launch and wait for the whale icon in the menu b
 
 Docker has to be **running** (whale icon visible) before any `make` target that touches the database.
 
-### 4. Install Node.js 20+
-
-Runs Next.js and the tooling. The Makefile requires version 20 or higher.
+### 3. Clone the repo
 
 ```bash
-brew install node@20
-```
-
-### 5. Enable Yarn via Corepack
-
-The package manager. Corepack ships with Node, so this is just a one-time enable.
-
-```bash
-corepack enable
-corepack prepare yarn@4.5.0 --activate
-```
-
-### 6. Clone the repo
-
-```bash
-gh repo clone your-org/acme-app ~/projects/acme-app
+git clone https://github.com/your-org/acme-app.git ~/projects/acme-app
 cd ~/projects/acme-app
 ```
 
-### 7. Authenticate the secrets manager
-
-Secrets are injected at runtime, so you log in once per machine (Infisical in the `advanced/` example — substitute your own):
-
-```bash
-brew install infisical/get-cli/infisical
-infisical login    # interactive browser flow
-```
-
-### 8. Advanced stack only: Stripe CLI, Trigger.dev, Python
-
-The `minimal/` setup is ready after step 7. The `advanced/` stack also runs a Stripe
-webhook listener, the Trigger.dev background-job worker, and Python PDF-processing jobs —
-install these too:
-
-```bash
-# Stripe CLI — forwards webhooks to localhost during dev
-brew install stripe/stripe-cli/stripe
-stripe login
-
-# Trigger.dev CLI — the background-job worker (auto-installs on first run)
-npx trigger login
-
-# Python 3 — for the PDF-processing background jobs
-brew install python@3.11
-```
-
-`netcat` (`nc`), used to probe Postgres readiness, ships with macOS — nothing to install.
-
-### 9. Let `make doctor` tell you what's left
-
-```bash
-make doctor
-```
-
-`doctor` checks every prerequisite (Node 20+, Yarn, the secrets-manager CLI, Python, etc.) and, for each one that's missing, prints the **exact command to fix it** — e.g. `Fix: brew install node@20`. Run those fix commands, then re-run `make doctor` until it's all green. The error *is* the instructions; there's no separate setup script to memorize.
-
-### 10. Start everything
+### 4. Run `make dev` and let `doctor` guide you
 
 ```bash
 make dev
 ```
 
-From here on, `make dev` is the only command you need.
+`make dev` runs `make doctor` first, which checks every remaining prerequisite — Node 20+, Yarn, the secrets-manager CLI, the Stripe and Trigger.dev CLIs, Python 3, netcat — and authentication for each. For anything missing it prints the **exact command to fix it** (e.g. `Fix: brew install node@20`) and stops. Run the command it gives you, then re-run `make dev`. Repeat until it's green; the error *is* the instructions, so there's no separate list of tools to memorize.
+
+A few of these resolve themselves with no action from you: the Stripe CLI is installed via Homebrew automatically, Yarn is enabled through Corepack once Node 20+ is present, and the app's dependencies (`yarn install`) and Python virtualenv are set up on first run. The ones `doctor` will ask you to install or log into are typically Node, the secrets manager (e.g. `infisical login`), Trigger.dev (`npx trigger login`), and Python.
+
+Once it's green, `make dev` is the only command you need from then on.
 
 ## Why this is easy for a non-technical person
 
