@@ -22,7 +22,9 @@ rename it to `Makefile`, and drop it in your repo.
 ## Which should I pick?
 
 - **Just getting started / solo project:** `Makefile.plain-env`. Simplest, no extra CLI.
-  The tradeoff: secrets live in a `.env` file on disk, so keep it `.gitignore`d.
+  The tradeoff: secrets live in a `.env` file on disk, so keep it `.gitignore`d. For local
+  dev you can seed throwaway values up front — e.g. `AUTH_SECRET=$(openssl rand -base64 32)`
+  and any local `PG_PASSWORD` — so `make dev` works with zero hand-editing.
 - **Team, want secrets out of files:** `Makefile.infisical` or `Makefile.doppler`.
   Secrets are pulled from a central vault at runtime; nothing on disk to leak.
 - **Already in the 1Password ecosystem:** `Makefile.1password`. Reads secret
