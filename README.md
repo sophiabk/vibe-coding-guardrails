@@ -34,6 +34,70 @@ handoff-template/
 
 ---
 
+## Prerequisites — what to install
+
+These guardrails (and the `make dev` workflow they sit on top of) assume a Mac with the
+full stack below installed. A fresh Mac needs these before `make dev` will work. Run them
+line by line; skip any you already have. `make doctor` checks every one of these and
+prints the exact fix command for anything that's missing.
+
+```bash
+# 1. Homebrew — the macOS package manager everything else uses
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. GitHub CLI — clone the (private) repo over HTTPS, no SSH keys
+brew install gh
+gh auth login                      # interactive: GitHub.com → HTTPS → login with browser
+
+# 3. Docker Desktop — runs the local Postgres database (download + launch)
+brew install --cask docker         # OR download https://www.docker.com/products/docker-desktop/
+open -a Docker                     # launch and wait for the whale icon in the menu bar
+
+# 4. Node.js 20+ — runs Next.js and the tooling
+brew install node@20
+
+# 5. Yarn via Corepack — the package manager
+corepack enable
+corepack prepare yarn@4.5.0 --activate
+
+# 6. Secrets manager CLI (Infisical in the advanced example) — injects secrets at runtime
+brew install infisical/get-cli/infisical
+infisical login                    # interactive browser flow, once per machine
+
+# 7. Stripe CLI — forwards webhooks to localhost during dev
+brew install stripe/stripe-cli/stripe
+stripe login
+
+# 8. Trigger.dev CLI — the background-job worker
+npx trigger login                  # auto-installs on first run
+
+# 9. Python 3 — for the PDF-processing background jobs
+brew install python@3.11
+
+# 10. netcat (nc) — used to probe Postgres readiness; ships with macOS (no install)
+```
+
+Docker has to be **running** (whale icon visible in the menu bar) before any `make` target
+that touches the database. The `minimal/` setup only needs steps 1–6; the rest are for the
+`advanced/` stack (background jobs, webhooks, Python workers).
+
+## Running it
+
+Once the prerequisites are in place, everything is driven by four `make` commands:
+
+| Command | What it does |
+| --- | --- |
+| `make dev` | Start everything (Docker + migrate + seed + the dev processes). |
+| `make stop` | Stop the Docker containers. **Database data is preserved.** |
+| `make reset` | Wipe the local DB, re-migrate, re-seed. (Local data is throwaway.) |
+| `make doctor` | Check prerequisites; print the fix command for anything missing. |
+
+If `make dev` fails, run `make doctor` first — the error message *is* the install
+instructions. See [`01-easy-local-dev/OVERVIEW.md`](01-easy-local-dev/OVERVIEW.md) for the
+narrated, step-by-step first-time walkthrough.
+
+---
+
 ## How to reuse this
 
 **For the easy-dev setup:**

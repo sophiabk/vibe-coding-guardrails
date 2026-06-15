@@ -92,14 +92,60 @@ open -a Docker                # launch and wait for the whale icon in the menu b
 
 Docker has to be **running** (whale icon visible) before any `make` target that touches the database.
 
-### 4. Clone the repo
+### 4. Install Node.js 20+
+
+Runs Next.js and the tooling. The Makefile requires version 20 or higher.
+
+```bash
+brew install node@20
+```
+
+### 5. Enable Yarn via Corepack
+
+The package manager. Corepack ships with Node, so this is just a one-time enable.
+
+```bash
+corepack enable
+corepack prepare yarn@4.5.0 --activate
+```
+
+### 6. Clone the repo
 
 ```bash
 gh repo clone your-org/acme-app ~/projects/acme-app
 cd ~/projects/acme-app
 ```
 
-### 5. Let `make doctor` tell you what's left
+### 7. Authenticate the secrets manager
+
+Secrets are injected at runtime, so you log in once per machine (Infisical in the `advanced/` example — substitute your own):
+
+```bash
+brew install infisical/get-cli/infisical
+infisical login    # interactive browser flow
+```
+
+### 8. Advanced stack only: Stripe CLI, Trigger.dev, Python
+
+The `minimal/` setup is ready after step 7. The `advanced/` stack also runs a Stripe
+webhook listener, the Trigger.dev background-job worker, and Python PDF-processing jobs —
+install these too:
+
+```bash
+# Stripe CLI — forwards webhooks to localhost during dev
+brew install stripe/stripe-cli/stripe
+stripe login
+
+# Trigger.dev CLI — the background-job worker (auto-installs on first run)
+npx trigger login
+
+# Python 3 — for the PDF-processing background jobs
+brew install python@3.11
+```
+
+`netcat` (`nc`), used to probe Postgres readiness, ships with macOS — nothing to install.
+
+### 9. Let `make doctor` tell you what's left
 
 ```bash
 make doctor
@@ -107,15 +153,7 @@ make doctor
 
 `doctor` checks every prerequisite (Node 20+, Yarn, the secrets-manager CLI, Python, etc.) and, for each one that's missing, prints the **exact command to fix it** — e.g. `Fix: brew install node@20`. Run those fix commands, then re-run `make doctor` until it's all green. The error *is* the instructions; there's no separate setup script to memorize.
 
-### 6. Authenticate the secrets manager
-
-Secrets are injected at runtime, so you log in once per machine (Infisical in the `advanced/` example — substitute your own):
-
-```bash
-infisical login    # interactive browser flow
-```
-
-### 7. Start everything
+### 10. Start everything
 
 ```bash
 make dev

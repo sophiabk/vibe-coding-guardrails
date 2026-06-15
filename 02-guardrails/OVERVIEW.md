@@ -2,6 +2,24 @@
 
 When you hand a codebase to a non-technical owner (or let an AI assistant make changes), the risk isn't day-to-day edits — it's the *rare catastrophic* one: a database schema change that corrupts data, a dependency bump that breaks the build, a tweak to auth or billing, a direct push to production. These guardrails are designed so that those specific changes are **blocked or gated**, while ordinary work (copy edits, UI tweaks, bug fixes) flows freely.
 
+## Running the app locally
+
+These guardrails sit on top of the same one-command workflow as the rest of the template —
+they don't change how you run the app. Once the prerequisites are installed, everything is
+driven by four `make` commands:
+
+| Command | What it does |
+| --- | --- |
+| `make dev` | Start everything (Docker + migrate + seed + the dev processes). |
+| `make stop` | Stop the Docker containers. Database data is preserved. |
+| `make reset` | Wipe the local DB, re-migrate, re-seed. |
+| `make doctor` | Check prerequisites; print the fix command for anything missing. |
+
+For the full line-by-line install list (Homebrew, Docker, Node 20+, Yarn, the secrets
+manager, Stripe/Trigger CLIs, Python) see
+[`../01-easy-local-dev/OVERVIEW.md`](../01-easy-local-dev/OVERVIEW.md). If `make dev`
+fails, run `make doctor` first.
+
 ## The layers of defense
 
 Guardrails are layered from softest (easy to bypass, catches honest mistakes early) to hardest (server-enforced, catches the dangerous stuff):
