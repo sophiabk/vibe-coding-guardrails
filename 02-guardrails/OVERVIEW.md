@@ -16,9 +16,10 @@ start. In an adopting project, everything is driven by four `make` commands:
 | `make reset` | Wipe the local DB, re-migrate, re-seed. |
 | `make doctor` | Check prerequisites; print the fix command for anything missing. |
 
-Setup is just three manual steps — install Homebrew, download and open Docker, and
-`git clone` the repo — then `make dev` runs `make doctor`, which checks everything else
-and prints the exact command to install anything missing. See
+Setup is a few manual steps — install Homebrew, download and open Docker, and `git clone`
+the repo — then either run `./scripts/bootstrap.sh` (advanced stack: installs the remaining
+tools and project deps) or go straight to `make dev` (minimal stack: `make doctor` diagnoses
+anything missing and prints the exact command to install it). See
 [`../01-easy-local-dev/OVERVIEW.md`](../01-easy-local-dev/OVERVIEW.md) for the walkthrough.
 
 ## The layers of defense

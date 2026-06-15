@@ -40,7 +40,7 @@ handoff-template/
 
 1. Start from `01-easy-local-dev/minimal/`. Copy the `Makefile`, `docker-compose.yml`, and `.env.example` into your project. You now have `make dev` / `make stop` / `make reset` / `make doctor`.
 2. Pick a secrets manager (Infisical, Doppler, 1Password CLI, …) and wire it into the `SECRETS_RUN` variable at the top of the `Makefile`. See `01-easy-local-dev/variants/` for a ready-made Makefile per tool.
-3. As your stack grows, copy the relevant pieces from `01-easy-local-dev/advanced/` — the extra `doctor` checks, the Python `_venv` target, the multi-process `dev` script in `package.json`.
+3. As your stack grows, copy the relevant pieces from `01-easy-local-dev/advanced/` — the extra `doctor` checks, the Python `_venv` target, the multi-process `dev` script in `package.json`, and `scripts/bootstrap.sh` (auto-installs the toolchain so new contributors run one script instead of chasing `doctor` fixes one at a time).
 
 **For the guardrails:**
 

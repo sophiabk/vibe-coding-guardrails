@@ -67,7 +67,7 @@ The other entry points:
 
 ## First-time setup (fresh Mac, nothing installed)
 
-`make dev` is the daily ritual *once you're set up*. From a brand-new Mac there are only three things to install by hand — everything else, `make dev` diagnoses for you. Skip any step you've already done.
+`make dev` is the daily ritual *once you're set up*. From a brand-new Mac there are three things to do by hand — install Homebrew, open Docker, and clone the repo — then one command does the rest: the `advanced/` stack ships a `bootstrap.sh` that installs every remaining tool, while the `minimal/` stack leans on `make doctor` to tell you what to install. Skip any step you've already done.
 
 ### 1. Install Homebrew
 
@@ -95,17 +95,26 @@ git clone https://github.com/your-org/acme-app.git ~/projects/acme-app
 cd ~/projects/acme-app
 ```
 
-### 4. Run `make dev` and let `doctor` guide you
+### 4. Install the remaining tools
+
+**Advanced stack — run the bootstrap script:**
 
 ```bash
+./scripts/bootstrap.sh
+```
+
+The `advanced/` stack ships [`scripts/bootstrap.sh`](advanced/scripts/bootstrap.sh) — idempotent, safe to re-run. It installs `node@20`, Yarn (via Corepack), the Infisical and Stripe CLIs, and `python@3.11` if missing, installs project dependencies, and finishes by running `make doctor`. Interactive logins (`infisical login`, `stripe login`, `npx trigger login`) and Docker are left to you — the script points you at each.
+
+> **Minimal stack — no bootstrap.** The `minimal/` stack has no script; skip straight to step 5. `make dev` runs `make doctor`, which *diagnoses* each missing tool and prints the **exact command to fix it** (e.g. `Fix: brew install node@20`). Run it, re-run `make dev`, repeat until green. The error *is* the instructions, so there's no separate list to memorize.
+
+### 5. Authenticate and start — `make dev`
+
+```bash
+infisical login    # secrets are injected at runtime; log in once per machine
 make dev
 ```
 
-`make dev` runs `make doctor` first, which checks every remaining prerequisite — Node 20+, Yarn, the secrets-manager CLI, the Stripe and Trigger.dev CLIs, Python 3, netcat — and authentication for each. For anything missing it prints the **exact command to fix it** (e.g. `Fix: brew install node@20`) and stops. Run the command it gives you, then re-run `make dev`. Repeat until it's green; the error *is* the instructions, so there's no separate list of tools to memorize.
-
-A few of these resolve themselves with no action from you: the Stripe CLI is installed via Homebrew automatically, Yarn is enabled through Corepack once Node 20+ is present, and the app's dependencies (`yarn install`) and Python virtualenv are set up on first run. The ones `doctor` will ask you to install or log into are typically Node, the secrets manager (e.g. `infisical login`), Trigger.dev (`npx trigger login`), and Python.
-
-Once it's green, `make dev` is the only command you need from then on.
+`make dev` runs `make doctor` first (so anything still missing or unauthenticated is caught with an exact fix), then starts Postgres, applies migrations, seeds, and launches the app + background worker + webhook listener. Once it's green, `make dev` is the only command you need from then on.
 
 ## Why this is easy for a non-technical person
 
@@ -122,7 +131,7 @@ Each design choice removes a specific point of friction:
 ## Layers in this folder
 
 - [`minimal/`](minimal/) — the **generic core**: Next.js + Postgres + a secrets-manager wrapper. Start here. It's the smallest thing that gives you `make dev` / `stop` / `reset` / `doctor`.
-- [`advanced/`](advanced/) — the **full version**: adds the background-job worker, the Stripe webhook listener, the Python virtualenv, and the complete `doctor` check suite. Copy pieces from here as your stack grows.
+- [`advanced/`](advanced/) — the **full version**: adds the background-job worker, the Stripe webhook listener, the Python virtualenv, the complete `doctor` check suite, and [`scripts/bootstrap.sh`](advanced/scripts/bootstrap.sh) (auto-installs the toolchain). Copy pieces from here as your stack grows.
 - [`variants/`](variants/) — the **same minimal Makefile, one per secrets manager** (Infisical, Doppler, 1Password, or a plain `.env` file). Shows that switching tools is a one-line change.
 
 The secrets manager is shown as **Infisical** in `advanced/` because that's what the source project used, but the pattern is tool-agnostic — `minimal/` uses a generic `SECRETS_RUN` variable you can point at Doppler, 1Password CLI, `direnv`, or anything else that wraps a command with injected env vars.
